@@ -25,6 +25,9 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings("CallToPrintStackTrace")
 public class Requests {
+    private CloseableHttpClient httpClient;
+
+
     private static final Logger logger = Logger.getLogger(Requests.class.getName());
     public Response httpGet(String endpoint, Map<String,String>headers,Map<String,String> queryParams) throws IOException {
         int max_tries=10;
@@ -56,7 +59,7 @@ public class Requests {
             for (Map.Entry<String, String> header : headers.entrySet()) {
                 request.setHeader(header.getKey(), header.getValue());
             }
-            System.out.println("Request Headers:");
+            logger.info("Request Headers:");
             for (Map.Entry<String, String> header : headers.entrySet()) {
                 request.setHeader(header.getKey(), header.getValue());
                 logger.info(header.getKey() + ": " + header.getValue());
@@ -95,87 +98,178 @@ public class Requests {
         return null;
     }
 
+
     public Response httpPost(String endpoint, String jsonbody,Map<String, String> headers) throws IOException {
         HttpClient client = HttpClients.createDefault();
         HttpPost httpPost = new HttpPost(endpoint);
         httpPost.setHeader("Content-Type", "application/json");
+        int max_tries=10;
+        int delay =10*1000;
+        int retryCount=0;
+        while(retryCount<=max_tries) {
 
-        for (Map.Entry<String, String> header : headers.entrySet()) {
-            httpPost.setHeader(header.getKey(), header.getValue());
-        }
-
-        StringEntity entity = new StringEntity(jsonbody);
-        httpPost.setEntity(entity);
-
-        HttpResponse httpres = null;
-        BufferedReader reader = null;
-
-        try {
-            httpres = client.execute(httpPost);
-            int statuscode = httpres.getStatusLine().getStatusCode();
-           logger.info("Post response status :" + statuscode);
-
-            Map<String, String> responseHeaders = Arrays.stream(httpres.getAllHeaders())
-                    .collect(Collectors.toMap(org.apache.http.Header::getName, org.apache.http.Header::getValue));
-
-            String responseBody= null;
-            HttpEntity res = httpres.getEntity();
-            if(res!=null){
-                responseBody=EntityUtils.toString(res);
+            for (Map.Entry<String, String> header : headers.entrySet()) {
+                httpPost.setHeader(header.getKey(), header.getValue());
             }
 
-           return new Response(responseHeaders,statuscode,responseBody);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } finally {
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+            StringEntity entity = new StringEntity(jsonbody);
+            httpPost.setEntity(entity);
+
+            HttpResponse httpres = null;
+            BufferedReader reader = null;
+
+            try {
+                httpres = client.execute(httpPost);
+                int statuscode = httpres.getStatusLine().getStatusCode();
+                logger.info("Post response status :" + statuscode);
+                if (statuscode == 429 || statuscode == 500) {
+                    logger.info("Received status code " + statuscode+ ", retrying after " + delay / 1000 + " seconds");
+                    Thread.sleep(delay);
+                    retryCount++;
+                    continue;
+                }
+
+
+                Map<String, String> responseHeaders = Arrays.stream(httpres.getAllHeaders())
+                        .collect(Collectors.toMap(org.apache.http.Header::getName, org.apache.http.Header::getValue));
+
+                String responseBody = null;
+                HttpEntity res = httpres.getEntity();
+                if (res != null) {
+                    responseBody = EntityUtils.toString(res);
+                }
+
+                return new Response(responseHeaders, statuscode, responseBody);
+            } catch (IOException | InterruptedException e) {
+                throw new RuntimeException(e);
+            } finally {
+                if (reader != null) {
+                    try {
+                        reader.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                if (httpres != null) {
+                    EntityUtils.consumeQuietly(httpres.getEntity());
                 }
             }
-            if (httpres != null) {
-                EntityUtils.consumeQuietly(httpres.getEntity());
-            }
         }
+
+
+        return null;
     }
 
 
-    public Response httpDelete(String endpoint,Map<String,String> headers){
-        HttpClient client = HttpClients.createDefault();
-        int id = 1;
-        HttpDelete delete = new HttpDelete(endpoint+id);
-        for (Map.Entry<String, String> header : headers.entrySet()) {
-            delete.setHeader(header.getKey(), header.getValue());
-        }
-
-        try{
-             HttpResponse httpResponse = client.execute(delete);
-            logger.info("deleted todo with id :"+id);
-            int statusCode = httpResponse.getStatusLine().getStatusCode();
-
-            Map<String, String> responseHeaders = Arrays.stream(httpResponse.getAllHeaders())
-                    .collect(Collectors.toMap(org.apache.http.Header::getName, org.apache.http.Header::getValue));
-            String responseBody = null;
-            HttpEntity responseEntity = httpResponse.getEntity();
-            if( responseEntity!=null){
-                responseBody =EntityUtils.toString(responseEntity);
+    public Response httpDelete(String endpoint,Map<String,String> headers) {
+        int max_tries = 10;
+        int delay = 10 * 1000;
+        int retryCount = 0;
+        while (retryCount <= max_tries) {
+            HttpClient client = HttpClients.createDefault();
+            int id = 1;
+            HttpDelete delete = new HttpDelete(endpoint + id);
+            for (Map.Entry<String, String> header : headers.entrySet()) {
+                delete.setHeader(header.getKey(), header.getValue());
             }
-            return new Response(responseHeaders,statusCode,responseBody);
 
-
-        } catch( IOException e){
-            e.printStackTrace();
-        } finally {
             try {
-                ((CloseableHttpClient)client).close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+                HttpResponse httpResponse = client.execute(delete);
+                logger.info("deleted todo with id :" + id);
+                int statusCode = httpResponse.getStatusLine().getStatusCode();
+                if (statusCode == 429 || statusCode == 500) {
+                    logger.info("Received status code " + statusCode+ ", retrying after " + delay / 1000 + " seconds");
+                    Thread.sleep(delay);
+                    retryCount++;
+                    continue;
+                }
+
+                Map<String, String> responseHeaders = Arrays.stream(httpResponse.getAllHeaders())
+                        .collect(Collectors.toMap(org.apache.http.Header::getName, org.apache.http.Header::getValue));
+                String responseBody = null;
+                HttpEntity responseEntity = httpResponse.getEntity();
+                if (responseEntity != null) {
+                    responseBody = EntityUtils.toString(responseEntity);
+                }
+                return new Response(responseHeaders, statusCode, responseBody);
+
+
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
+            } finally {
+                try {
+                    ((CloseableHttpClient) client).close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
+            return null;
+
         }
         return null;
-
     }
 
 }
+
+
+
+
+
+
+
+
+
+/*
+public Response httpPost(String endpoint, String jsonbody,Map<String, String> headers) throws IOException {
+    HttpClient client = HttpClients.createDefault();
+    HttpPost httpPost = new HttpPost(endpoint);
+    httpPost.setHeader("Content-Type", "application/json");
+    int max_tries=10;
+    int delay =10*1000;
+    int retryCount=0;
+
+    for (Map.Entry<String, String> header : headers.entrySet()) {
+        httpPost.setHeader(header.getKey(), header.getValue());
+    }
+
+    StringEntity entity = new StringEntity(jsonbody);
+    httpPost.setEntity(entity);
+
+    HttpResponse httpres = null;
+    BufferedReader reader = null;
+
+    try {
+        httpres = client.execute(httpPost);
+        int statuscode = httpres.getStatusLine().getStatusCode();
+        logger.info("Post response status :" + statuscode);
+
+
+        Map<String, String> responseHeaders = Arrays.stream(httpres.getAllHeaders())
+                .collect(Collectors.toMap(org.apache.http.Header::getName, org.apache.http.Header::getValue));
+
+        String responseBody = null;
+        HttpEntity res = httpres.getEntity();
+        if (res != null) {
+            responseBody = EntityUtils.toString(res);
+        }
+
+        return new Response(responseHeaders, statuscode, responseBody);
+    } catch (IOException e) {
+        throw new RuntimeException(e);
+    } finally {
+        if (reader != null) {
+            try {
+                reader.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        if (httpres != null) {
+            EntityUtils.consumeQuietly(httpres.getEntity());
+        }
+    }
+
+
+
+}
+*/
