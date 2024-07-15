@@ -13,7 +13,7 @@ to perform HTTP GET, POST, and DELETE requests with built-in support for retryin
 The retry behavior (max retry count and delay) is configurable via the `config.properties` file located in the classpath.
 
 ## Dependencies
-This project relies on the Apache HttpClient library for handling HTTP requests and responses. Ensure you have the
+This project relies on the Apache HttpClient library for handling HTTP requests and responses , Junit and WireMock to conduct Tests. Ensure you have the
 necessary dependencies configured in your project's build system.
 
 ## Data Transfer Object Class
@@ -28,7 +28,7 @@ public Response(Map<String, String> headers, int statusCode, String body) {
 
 
 ## Tests
-### Many tests have been configured in `TestCases` class to ensure proper working of the request methods.
+### Many tests have been configured in `TestCases` class with Junit and WireMock to ensure proper working of the request methods.
 The tests included are:
 - **GET success:** This test asserts the status code after execution of the request.
 - **GET success with Query Parameters:** This asserts the status code after execution of the request.
