@@ -4,7 +4,7 @@ import java.util.Map;
 /**
  * This class represents a Http response containing headers,status code and body.
  * <p>
- * This Data Transfer Unit class is used to encapsulate the details of an HTTP response received from the server
+ * This Data Transfer Object class is used to encapsulate the details of an HTTP response received from the server
  * It provides methods to retrieve ans set the response headers,status codes and body.
  * </p>
  */

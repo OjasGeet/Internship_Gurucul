@@ -16,8 +16,19 @@ The retry behavior (max retry count and delay) is configurable via the `config.p
 This project relies on the Apache HttpClient library for handling HTTP requests and responses. Ensure you have the
 necessary dependencies configured in your project's build system.
 
+## Data Transfer Object Class
+The `Response` class is used as a DTO (Data Transfer Object) to encapsulate HTTP response details.
+```java
+public Response(Map<String, String> headers, int statusCode, String body) {
+        this.headers = headers;
+        this.statusCode = statusCode;
+        this.body = body;
+}
+```
+
+
 ## Tests
-### Many tests have been configured in 'TestCases' class to ensure proper working of the request methods.
+### Many tests have been configured in `TestCases` class to ensure proper working of the request methods.
 The tests included are:
 - **GET success:** This test asserts the status code after execution of the request.
 - **GET success with Query Parameters:** This asserts the status code after execution of the request.
@@ -31,8 +42,9 @@ The tests included are:
 
 ## Usage
 ### Initialization
-```java
+  ```java
 Requests requests = new Requests();
+
  
 
 
