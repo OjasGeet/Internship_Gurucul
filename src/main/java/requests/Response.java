@@ -8,7 +8,6 @@ import java.util.Map;
  * It provides methods to retrieve ans set the response headers,status codes and body.
  * </p>
  */
-
 public class Response {
     private Map<String, String> headers;
     private int statusCode;
@@ -20,19 +19,17 @@ public class Response {
      * @param statusCode The Http status code of the response.
      * @param body The body of the response as a string.
      */
-
-
     public Response(Map<String, String> headers, int statusCode, String body) {
         this.headers = headers;
         this.statusCode = statusCode;
         this.body = body;
     }
+
     /**
      * Returns the headers of the response.
      *
      * @return A map of HTTP headers included in the response.
      */
-
     public Map<String, String> getHeaders() {
         return headers;
     }
@@ -42,7 +39,6 @@ public class Response {
      *
      * @param headers A map of HTTP headers to set for the response.
      */
-
     public void setHeaders(Map<String, String> headers) {
         this.headers = headers;
     }

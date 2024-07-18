@@ -1,15 +1,5 @@
-/**
- * A utility class for making HTTP requests using the Apache HttpClient
- * This class provides methods to perform HTTP GET, POST and DELETE requests with
- * built-in support for retrying requests on specific HTTP status codes
-  * <p>
- * Configuration for retry behavior is loaded from a properties file named "config.properties"
- * </p>
- * @author Ojas Geet
- */
 
 package requests;
-
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -34,11 +24,22 @@ import java.util.Properties;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+/**
+ * A utility class for making HTTP requests using the Apache HttpClient
+ * This class provides methods to perform HTTP GET, POST and DELETE requests with
+ * built-in support for retrying requests on specific HTTP status codes
+ * <p>
+ * Configuration for retry behavior is loaded from a properties file named "config.properties"
+ * </p>
+ * @author Ojas Geet
+ */
 @SuppressWarnings("CallToPrintStackTrace")
 public class Requests {
     private CloseableHttpClient httpClient;
     private int maxRetryCount;
     private long retryDelay;
+
+    private static final Logger logger = Logger.getLogger(Requests.class.getName());
 
     /**
      * Constructs a new object and loads properties from the "config.properties" file
@@ -46,15 +47,26 @@ public class Requests {
      */
 
     public Requests(){
-        loadProperties();
+        loadProperties(null);
+    }
+
+    /**
+     * Constructs a new object and loads properties from the given properties object
+     * for configuring retry behavior
+     *
+     * @param overrideProperties Properties object to override the defaults from the "config.properties" file
+     */
+    public Requests(Properties overrideProperties){
+        loadProperties(overrideProperties);
     }
 
     /**
      * Loads retry configuration properties from the "config.properties" file.
      * Properties include max retry count and retry delay.
+     *
+     * @param overrideProperties Properties object to override the defaults from the "config.properties" file
      */
-
-    private void loadProperties(){
+    private void loadProperties(Properties overrideProperties) {
         Properties properties = new Properties();
         try (InputStream input = getClass().getClassLoader().getResourceAsStream("config.properties")) {
             if (input != null) {
@@ -66,9 +78,35 @@ public class Requests {
             e.printStackTrace();
         }
 
+        if (overrideProperties != null) {
+            if (overrideProperties.containsKey("retry.maxCount")) {
+                maxRetryCount = Integer.parseInt(overrideProperties.getProperty("retry.maxCount"));
+            }
+            if (overrideProperties.containsKey("retry.delay")) {
+                retryDelay = Long.parseLong(overrideProperties.getProperty("retry.delay"));
+            }
+        }
     }
 
-    private static final Logger logger = Logger.getLogger(Requests.class.getName());
+    /**
+     * Sets the maximum retry count for HTTP requests
+     *
+     * @param maxRetryCount Maximum retry count
+     */
+    public void setMaxRetryCount(int maxRetryCount){
+        this.maxRetryCount=maxRetryCount;
+    }
+
+    /**
+     * Sets the retry delay for HTTP requests
+     *
+     * @param retryDelay Retry delay in milliseconds
+     */
+    public void setRetryDelay(long retryDelay){
+        this.retryDelay=retryDelay;
+    }
+
+
 
     /**
      * This method performs an HTTP GET request to te specified endpoint with headers and query parameters.
@@ -81,9 +119,6 @@ public class Requests {
      * @return A Response object containing the response headers, status code and body.
      * @throws IOException If an I/O error occurs while making a request.
      */
-
-
-
     public Response httpGet(String endpoint, Map<String,String>headers,Map<String,String> queryParams) throws IOException {
         int retryCount=0;
         while(retryCount<=maxRetryCount) {
@@ -150,7 +185,6 @@ public class Requests {
         }
         return null;
     }
-
     /**
      * This method performs an HTTP post to the specified endpoint with a JSON body and headers.
      * Retries the request if the response status code is 429(Too many requests) or 500 (Internal Server Error).
@@ -161,7 +195,6 @@ public class Requests {
      * @return An object containing the response headers, status code and body.
      * @throws IOException If an I/O error occurs while making the request.
      */
-
     public Response httpPost(String endpoint, String jsonbody,Map<String, String> headers) throws IOException {
         HttpClient client = HttpClients.createDefault();
         HttpPost httpPost = new HttpPost(endpoint);
@@ -233,8 +266,6 @@ public class Requests {
      * @param headers A map of HTTP headers to include in the request.
      * @return An object containing the response headers, status code and body.
      */
-
-
     public Response httpDelete(String endpoint,Map<String,String> headers) {
 
         int retryCount = 0;

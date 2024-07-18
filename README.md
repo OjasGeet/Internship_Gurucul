@@ -11,6 +11,12 @@ to perform HTTP GET, POST, and DELETE requests with built-in support for retryin
 
 ## Configuration
 The retry behavior (max retry count and delay) is configurable via the `config.properties` file located in the classpath.
+User can configure the retry delay and max retry count by calling the:-
+```java
+setMaxRetryCount(int maxRetryCount);
+setRetryDelay(long retryDelay);
+```
+
 
 ## Dependencies
 This project relies on the Apache HttpClient library for handling HTTP requests and responses , Junit and WireMock to conduct Tests. Ensure you have the
@@ -42,9 +48,9 @@ The tests included are:
 
 ## Usage
 ### Initialization
-  ```java
+```java
 Requests requests = new Requests();
-
+```
  
 
 
